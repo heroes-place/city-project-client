@@ -1,7 +1,7 @@
 export default class Player {
   constructor() {
     this.speed = 200
-    this.currentPosition = { x: 0, y: 0 }
+    this.distance = { x: 0, y: 0 }
     this.sprite = null
     this.anims = null
   }
@@ -15,7 +15,7 @@ export default class Player {
   }
 
   // fast call
-  move(direction) {
+  move(direction, delta) {
     const prevVelocity = this.sprite.body.velocity.clone()
 
     this.sprite.body.setVelocity(0)
@@ -50,6 +50,12 @@ export default class Player {
 
     // Normalize and scale the velocity so that player can't move faster along a diagonal
     this.sprite.body.velocity.normalize().scale(this.speed)
+
+    // Cache distance
+    const distance = this.calcDistance(delta)
+
+    this.distance.x += distance.x
+    this.distance.y += distance.y
   }
 
   calcDistance(delta) {
@@ -57,14 +63,11 @@ export default class Player {
 
     // vitesse * temps = distance   |   d = v * t
     const distance = {
-      x: this.sprite.body.velocity.x * delta,
-      y: this.sprite.body.velocity.y * delta
+      x: this.sprite.body.velocity.x * delta / 32,
+      y: this.sprite.body.velocity.y * delta / 32
     }
 
-    return {
-      x: distance.x / 32,
-      y: distance.y / 32
-    }
+    return distance
   }
 
   initAnimations(anims) {

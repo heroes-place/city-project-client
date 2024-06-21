@@ -10,4 +10,14 @@ export default class MapCache {
   getCache() {
     return this.cache
   }
+
+  clearCache() {
+    delete this.cache
+
+    this.cache = [
+      [],
+      [],
+      []
+    ]
+  }
 }

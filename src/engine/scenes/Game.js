@@ -2,8 +2,8 @@ import { EventBus } from '../index'
 import { Scene } from 'phaser'
 
 import { socket } from '@/api/socket/socket.js'
-import { onCharacterMove } from '@/engine/objects/Character.js'
-import { onCharacterSpawn } from '../objects/Character'
+import { onCharacterSpawn } from '@/engine/objects/Character.js'
+// import { onCharacterMove } from '@/engine/objects/Character.js'
 
 import MapCache from '@/engine/objects/MapCache.js'
 import Player from '@/engine/objects/Player.js'
@@ -12,12 +12,14 @@ export class Game extends Scene {
   constructor () {
     super('Game')
 
+    this.mapCache = new MapCache()
+    this.layers = []
     this.player = new Player()
+    this.otherPlayers = []
+
     this.cursors = undefined
 
-    this.mapCache = new MapCache()
-
-    this.otherPlayers = []
+    this.lastEmitTime = 0
   }
 
   preload () {
@@ -54,10 +56,12 @@ export class Game extends Scene {
     const worldLayer = map.createBlankLayer('World', tileset, 0, 0)
     const aboveLayer = map.createBlankLayer('Above', tileset, 0, 0)
 
+    this.layers = [belowLayer, worldLayer, aboveLayer]
+
     // worldLayer.setCollisionByProperty({ collides: true })
 
     // 480, 256
-    this.player.setSprite(this.physics.add.sprite(15 * 32, 8 * 32, 'atlas', 'misa-front').setSize(32, 32).setOffset(0, 0))
+    this.player.setSprite(this.physics.add.sprite(15 * 32, 8 * 32, 'atlas', 'misa-front').setSize(32, 32).setOffset(0, 24))
     this.player.initAnimations(this.anims)
 
     const camera = this.cameras.main
@@ -67,11 +71,13 @@ export class Game extends Scene {
 
     socket.emit('character_spawn')
 
-    socket.on('character_spawn', (content) => onCharacterSpawn({ content, layers: [belowLayer, worldLayer, aboveLayer], mapCache: this.mapCache.cache, player: this.player }))
-    socket.on('character_move', (content) => onCharacterMove({ content, layers: [belowLayer, worldLayer, aboveLayer], mapCache: this.mapCache.cache }))
+    socket.on('character_spawn', (content) => onCharacterSpawn({ content, game: this }))
+    // socket.on('character_move', (content) => onCharacterMove({ content, layers: [belowLayer, worldLayer, aboveLayer], mapCache: this.mapCache, player: this.player }))
   }
 
   update (time, delta) {
+    const tick = 32 / this.player.speed * 1000
+
     let direction = null
 
     if (this.cursors.left.isDown) direction = 'left'
@@ -79,10 +85,13 @@ export class Game extends Scene {
     if (this.cursors.up.isDown) direction = 'up'
     if (this.cursors.down.isDown) direction = 'down'
 
-    this.player.move(direction)
+    this.player.move(direction, delta / 1000)
 
-    const distance = this.player.calcDistance(delta / 1000)
+    if (this.player.distance.x === 0 && this.player.distance.y === 0) return
 
-    if (distance.x !== 0 || distance.y !== 0) socket.emit('character_move', { distance })
+    console.log('tick')
+    socket.emit('character_move', { direction, distance: this.player.distance })
+
+    this.player.distance = { x: 0, y: 0 }
   }
 }

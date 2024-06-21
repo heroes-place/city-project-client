@@ -2,30 +2,34 @@ const chunk = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }
   arr.slice(i * size, i * size + size)
 )
 
-export const onCharacterSpawn = ({ content, layers, mapCache, player }) => {
-  // Adjust player position
-  player.sprite.setX(player.sprite.x + content.precision.x * 32)
-  player.sprite.setY(player.sprite.y + content.precision.y * 32)
+export const onCharacterSpawn = ({ content, game }) => {
+  const cache = game.mapCache.cache
 
-  content.others.forEach((other) => {
+  const { layers, others, precision } = content
+
+  game.player.sprite.setX(game.player.sprite.x + precision.x * 32)
+  game.player.sprite.setY(game.player.sprite.y + precision.y * 32)
+
+  others.forEach((other) => {
     game.otherPlayers[other.characterId] = game.physics.add.sprite(other.coords.x * 32, other.coords.y * 32, 'atlas', 'misa-front').setSize(32, 32).setOffset(0, 24)
   })
 
-  for (let i = 0; i < content.layers.length; i++) {
-    mapCache[i].push(...chunk(content.layers[i], 32))
+  for (let i = 0; i < layers.length; i++) {
+    cache[i].push(...chunk(layers[i], 32))
 
     // Server side
-    mapCache[i].forEach((row, rowIndex) => {
+    cache[i].forEach((row, rowIndex) => {
       row.forEach((tile, tileIndex) => {
-        if (tile == 0) mapCache[i][rowIndex][tileIndex] = -1
+        if (tile == 0) cache[i][rowIndex][tileIndex] = -1
       })
     })
 
-    layers[i].putTilesAt(mapCache[i], 0, 0)
+    game.layers[i].putTilesAt(cache[i], 0, 0)
   }
 
-  console.log(mapCache)
+  console.log(cache)
 }
 
-export const onCharacterMove = ({ content, layers, mapCache }) => {
+export const onCharacterMove = ({ content, layers, mapCache, player }) => {
+  // Disabled
 }
